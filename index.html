@@ -1,0 +1,271 @@
+Here’s the full updated HTML with Psalm 91 added right under the Rosary on the home page. It uses the rosary icon, the same stage layout, and the faster typing speed (delaysBetween(40, 65)).
+
+Save it as an .html file.
+
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Aquae for the Spirit — Catholic</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; background: var(--bg, #000); color: var(--ink, #f2f2f2); font: 18px/1.5 -apple-system, system-ui, sans-serif; }
+    main { max-width: 38rem; margin: 0 auto; padding: 12vh 1.5rem 6rem; }
+    h1 { font-weight: 500; font-size: 1.6rem; }
+    p { color: var(--ink); opacity: 0.78; }
+    a { color: inherit; }
+    nav { display: flex; flex-direction: column; gap: 0.75rem; margin: 2.5rem 0; }
+    nav a { display: block; text-decoration: none; border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); padding: 0.9rem 1rem; }
+    nav a span { display: block; color: var(--ink); opacity: 0.55; font-size: 0.9rem; margin-top: 0.2rem; }
+    .support { margin-top: 3rem; font-size: 0.85rem; color: var(--ink); opacity: 0.5; text-align: center; }
+    .support a { text-decoration: underline; opacity: 0.8; }
+    #stage { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8vh 8vw; box-sizing: border-box; gap: 2.5rem; font-size: 22px; }
+    #line { margin: 0; max-width: 24em; min-height: 1.5em; }
+    #rosary { width: 120px; height: auto; }
+    #bar { position: fixed; top: 1rem; left: 1rem; right: 1rem; display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    #bar a, #setlabel, #switch, #themes button { color: var(--ink); opacity: 0.65; background: transparent; border: 0; font: 13px -apple-system, system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+    #switch { border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); padding: 0.4rem 0.6rem; }
+    #themes { display: flex; gap: 0.4rem; }
+    #themes i { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 40%, transparent); }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    const FEEDING = "https://give.feedingamerica.org/8u355rD-u02ytwE0jUq9jQ2?source=Y26YP6D1Z&utm_medium=cpc&utm_source=paid&utm_term=gift&utm_content=bing&utm_campaign=thanksgiving&gclid=49b8ac7ea3a91f16ecc9c6b927de9e79&gclsrc=3p.ds&msclkid=49b8ac7ea3a91f16ecc9c6b927de9e79";
+    const COFFEE = "https://buymeacoffee.com/estheraloe";
+    const params = new URLSearchParams(location.search);
+    const page = params.get("page") || "home";
+    const app = document.getElementById("app");
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let paused = false;
+    let pauseWaiters = [];
+
+    const themes = [
+      ["#000000","#f2f2f2"],
+      ["#141a24","#e7eef8"],
+      ["#1c1714","#f3ebe3"],
+      ["#10211c","#e7f3ee"],
+      ["#ffffff","#1a1a1a"],
+      ["#f7f5f2","#2a241f"],
+      ["#eef3f0","#1a2e28"]
+    ];
+    function loadTheme() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("theme") || "null");
+        if (Array.isArray(saved) && saved.length === 2) return saved;
+      } catch (e) {}
+      return themes[0];
+    }
+    function applyTheme(theme) {
+      document.documentElement.style.setProperty("--bg", theme[0]);
+      document.documentElement.style.setProperty("--ink", theme[1]);
+      localStorage.setItem("theme", JSON.stringify(theme));
+    }
+    applyTheme(loadTheme());
+
+    function themeDots() {
+      return `<div id="themes">${themes.map((t, i) => `<button type="button" data-i="${i}" aria-label="Theme ${i + 1}"><i style="background:${t[0]}"></i></button>`).join("")}</div>`;
+    }
+    function bindDots() {
+      document.querySelectorAll("#themes button").forEach((button) => {
+        button.addEventListener("click", (event) => { event.stopPropagation(); applyTheme(themes[button.dataset.i]); });
+      });
+    }
+    function bindPause(stage) {
+      stage.addEventListener("click", (event) => {
+        if (event.target.closest("a, button")) return;
+        paused = !paused;
+        if (!paused) pauseWaiters.splice(0).forEach((resume) => resume());
+      });
+    }
+    function waitWhilePaused() {
+      if (!paused) return Promise.resolve();
+      return new Promise((resolve) => pauseWaiters.push(resolve));
+    }
+
+    const sleep = async (ms) => {
+      let left = ms;
+      while (left > 0) {
+        await waitWhilePaused();
+        const chunk = Math.min(50, left);
+        await new Promise((r) => setTimeout(r, chunk));
+        left -= chunk;
+      }
+      await waitWhilePaused();
+    };
+    function delaysBetween(min, max) {
+      const values = [];
+      for (let v = min; v <= max; v += 5) values.push(v);
+      return values;
+    }
+    async function typeLine(el, text, delays, hold) {
+      await waitWhilePaused();
+      if (reduceMotion) el.textContent = text;
+      else {
+        el.textContent = "";
+        for (const ch of text) { await waitWhilePaused(); el.textContent += ch; await sleep(delays[Math.floor(Math.random() * delays.length)]); }
+      }
+      await sleep(hold);
+    }
+
+    const rosarySVG = `<svg id="rosary" viewBox="0 0 200 250" aria-hidden="true">
+      <circle cx="100" cy="92" r="70" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="1.5"/>
+      <circle data-bead="r0" data-r="4.5" cx="100" cy="22" r="4.5" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r1" data-r="3.2" cx="130" cy="30" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r2" data-r="3.2" cx="156" cy="50" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r3" data-r="3.2" cx="170" cy="78" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r4" data-r="3.2" cx="168" cy="110" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r5" data-r="3.2" cx="150" cy="138" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r6" data-r="3.2" cx="124" cy="156" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r7" data-r="4.5" cx="100" cy="162" r="4.5" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r8" data-r="3.2" cx="76" cy="156" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r9" data-r="3.2" cx="50" cy="138" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r10" data-r="3.2" cx="32" cy="110" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r11" data-r="3.2" cx="30" cy="78" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r12" data-r="3.2" cx="44" cy="50" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="r13" data-r="3.2" cx="70" cy="30" r="3.2" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="t0" data-r="3.4" cx="100" cy="188" r="3.4" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="t1" data-r="3.4" cx="100" cy="202" r="3.4" fill="currentColor" opacity="0.35"/>
+      <circle data-bead="t2" data-r="3.4" cx="100" cy="216" r="3.4" fill="currentColor" opacity="0.35"/>
+      <path id="cross" d="M100 228 v16 M92 236 h16" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="2"/>
+    </svg>`;
+
+    const prayers = {
+      psalm91: [
+        "He that dwelleth in the secret place of the most High shall abide under the shadow of the Almighty.",
+        "I will say of the Lord, He is my refuge and my fortress: my God; in him will I trust.",
+        "Surely he shall deliver thee from the snare of the fowler, and from the noisome pestilence.",
+        "He shall cover thee with his feathers, and under his wings shalt thou trust: his truth shall be thy shield and buckler.",
+        "Thou shalt not be afraid for the terror by night; nor for the arrow that flieth by day;",
+        "Nor for the pestilence that walketh in darkness; nor for the destruction that wasteth at noonday.",
+        "A thousand shall fall at thy side, and ten thousand at thy right hand; but it shall not come nigh thee.",
+        "Only with thine eyes shalt thou behold and see the reward of the wicked.",
+        "Because thou hast made the Lord, which is my refuge, even the most High, thy habitation;",
+        "There shall no evil befall thee, neither shall any plague come nigh thy dwelling.",
+        "For he shall give his angels charge over thee, to keep thee in all thy ways.",
+        "They shall bear thee up in their hands, lest thou dash thy foot against a stone.",
+        "Thou shalt tread upon the lion and adder: the young lion and the dragon shalt thou trample under feet.",
+        "Because he hath set his love upon me, therefore will I deliver him: I will set him on high, because he hath known my name.",
+        "He shall call upon me, and I will answer him: I will be with him in trouble; I will deliver him, and honour him.",
+        "With long life will I satisfy him, and shew him my salvation."
+      ],
+      michael: ["Saint Michael the Archangel, defend us in battle. Be our protection against the wickedness and snares of the devil. May God rebuke him, we humbly pray; and do thou, O Prince of the heavenly host, by the power of God, cast into hell Satan and all the evil spirits who prowl about the world seeking the ruin of souls. Amen."],
+      gabriel: ["O God, who from among all your angels chose the Archangel Gabriel to announce the mystery of the Incarnation, mercifully grant that we who solemnly remember him on earth may feel the benefit of his patronage in heaven. Amen."],
+      raphael: ["O God, who gave the blessed Archangel Raphael to your servant Tobias as a companion on his journey, grant us, your servants, that we may always be protected by his patronage and strengthened by his help. Amen."],
+      anthony: ["O Holy St. Anthony, gentlest of Saints, your love for God and charity for His creatures made you worthy, when on earth, to possess miraculous powers. Encouraged by this thought, I implore you to obtain for me the grace I need. O gentle and loving St. Anthony, whisper my petition into the ears of the sweet Infant Jesus, who loved to be folded in your arms. Amen."],
+      jude: ["Most holy Apostle, St. Jude, faithful servant and friend of Jesus, the Church honors and invokes you universally as the patron of hopeless cases, of things almost despaired of. Pray for me, I am so helpless and alone. Intercede with God for me that He bring visible and speedy help where help is almost despaired of. Come to my assistance in this great need that I may receive the consolation and help of heaven in all my necessities, tribulations, and sufferings, and that I may praise God with you and all the saints forever. Amen."],
+      anne: ["Good St. Anne, you were especially favored by God to be the mother of the most holy Virgin Mary, the Mother of our Savior. By your power with your most pure daughter and with her divine Son, kindly obtain for us the grace and the favor we now seek. Please secure for us also forgiveness of our past sins, the strength to perform faithfully our daily duties, and the help we need to persevere in the love of Jesus and Mary. Amen."],
+      mary: ["Remember, O most gracious Virgin Mary, that never was it known that anyone who fled to thy protection, implored thy help, or sought thy intercession was left unaided. Inspired by this confidence, I fly unto thee, O Virgin of virgins, my Mother. To thee do I come, before thee I stand, sinful and sorrowful. O Mother of the Word Incarnate, despise not my petitions, but in thy mercy hear and answer me. Amen."],
+      joseph: ["O Saint Joseph, whose protection is so great, so strong, so prompt before the throne of God, I place in you all my interests and desires. O Saint Joseph, do assist me by your powerful intercession, and obtain for me from your Divine Son all spiritual blessings, through Jesus Christ, our Lord. Amen."],
+      francis: ["Most High, glorious God, enlighten the darkness of my heart and give me true faith, certain hope, and perfect charity, sense and knowledge, so that I may carry out Your holy and true command. Amen."],
+      benedict: ["Glorious Saint Benedict, sublime model of virtue, pure vessel of God’s grace, look kindly upon me. Protect me in the battle against evil; drive far from me the snares of the enemy, and obtain for me the grace to resist temptation, to live in peace, and to die in the friendship of God. Amen."]
+    };
+    const labels = {
+      psalm91: "Psalm 91",
+      michael: "St. Michael",
+      gabriel: "St. Gabriel",
+      raphael: "St. Raphael",
+      anthony: "St. Anthony",
+      jude: "St. Jude",
+      anne: "St. Anne",
+      mary: "St. Mary",
+      joseph: "St. Joseph",
+      francis: "St. Francis",
+      benedict: "St. Benedict"
+    };
+
+    if (page === "home") {
+      app.innerHTML = `<main>
+        <h1>Aquae for the Spirit</h1>
+        <p>A quiet screen for prayer.</p>
+        <nav>
+          <a href="?page=rosary">Rosary<span>Joyful, Sorrowful, Glorious, Luminous.</span></a>
+          <a href="?page=psalm91">Psalm 91<span>He that dwelleth in the secret place.</span></a>
+          <a href="?page=michael">St. Michael<span>Defend us in battle.</span></a>
+          <a href="?page=gabriel">St. Gabriel<span>Messenger of the Incarnation.</span></a>
+          <a href="?page=raphael">St. Raphael<span>Healer and companion.</span></a>
+          <a href="?page=anthony">St. Anthony<span>Help for lost things and needs.</span></a>
+          <a href="?page=jude">St. Jude<span>Patron of hopeless cases.</span></a>
+          <a href="?page=anne">St. Anne<span>Mother of Mary, grandmother of Jesus.</span></a>
+          <a href="?page=mary">St. Mary<span>Mother of God.</span></a>
+          <a href="?page=joseph">St. Joseph<span>Foster father of Jesus, protector.</span></a>
+          <a href="?page=francis">St. Francis<span>Peace, simplicity, love of creation.</span></a>
+          <a href="?page=benedict">St. Benedict<span>Protection against evil.</span></a>
+        </nav>
+        <p class="support">Support: <a href="${FEEDING}" target="_blank">Feeding America</a> · <a href="${COFFEE}" target="_blank">Buy me a coffee</a></p>
+      </main>`;
+    }
+
+    if (prayers[page]) {
+      const lines = prayers[page];
+      const label = labels[page];
+      app.innerHTML = `<div id="bar"><a href="?">Back</a><span id="setlabel">${label}</span>${themeDots()}</div><div id="stage"><p id="line"></p>${rosarySVG}</div>`;
+      bindDots();
+      bindPause(document.getElementById("stage"));
+      const line = document.getElementById("line");
+      const delays = delaysBetween(40, 65);
+      (async function run() {
+        while (true) for (let i = 0; i < lines.length; i++) await typeLine(line, lines[i], delays, 2800);
+      })();
+    }
+
+    if (page === "rosary") {
+      const ourFather = "Our Father, who art in heaven, hallowed be thy name; thy kingdom come; thy will be done on earth as it is in heaven. Give us this day our daily bread; and forgive us our trespasses as we forgive those who trespass against us; and lead us not into temptation, but deliver us from evil. Amen.";
+      const hailMary = "Hail Mary, full of grace, the Lord is with thee. Blessed art thou among women, and blessed is the fruit of thy womb, Jesus. Holy Mary, Mother of God, pray for us sinners, now and at the hour of our death. Amen.";
+      const gloryBe = "Glory be to the Father, and to the Son, and to the Holy Spirit. As it was in the beginning, is now, and ever shall be, world without end. Amen.";
+      const fatima = "O my Jesus, forgive us our sins, save us from the fires of hell; lead all souls to heaven, especially those in most need of thy mercy. Amen.";
+      const order = ["joyful", "sorrowful", "glorious", "luminous"];
+      const mysteries = { joyful: ["The Annunciation","The Visitation","The Nativity","The Presentation in the Temple","The Finding of the Child Jesus in the Temple"], sorrowful: ["The Agony in the Garden","The Scourging at the Pillar","The Crowning with Thorns","The Carrying of the Cross","The Crucifixion"], glorious: ["The Resurrection","The Ascension","The Descent of the Holy Spirit","The Assumption","The Coronation of Mary"], luminous: ["The Baptism in the Jordan","The Wedding at Cana","The Proclamation of the Kingdom","The Transfiguration","The Institution of the Eucharist"] };
+      const set = mysteries[params.get("set")] ? params.get("set") : "joyful";
+      const next = order[(order.indexOf(set) + 1) % order.length];
+      const small = ["r1","r2","r3","r4","r5","r6","r8","r9","r10","r11","r12","r13"];
+      const decade = (mystery, index) => {
+        const ours = index % 2 === 0 ? "r0" : "r7";
+        return [
+          { text: mystery, bead: "" },
+          { text: ourFather, bead: ours },
+          ...Array.from({ length: 10 }, (_, n) => ({ text: hailMary, bead: small[(index * 2 + n) % small.length] })),
+          { text: gloryBe, bead: ours },
+          { text: fatima, bead: ours }
+        ];
+      };
+      const lines = [
+        { text: "In the name of the Father, and of the Son, and of the Holy Spirit. Amen.", bead: "cross" },
+        { text: "I believe in God, the Father almighty, Creator of heaven and earth, and in Jesus Christ, his only Son, our Lord, who was conceived by the Holy Spirit, born of the Virgin Mary, suffered under Pontius Pilate, was crucified, died and was buried; he descended into hell; on the third day he rose again from the dead; he ascended into heaven, and is seated at the right hand of God the Father almighty; from there he will come to judge the living and the dead. I believe in the Holy Spirit, the holy catholic Church, the communion of saints, the forgiveness of sins, the resurrection of the body, and life everlasting. Amen.", bead: "t0" },
+        { text: ourFather, bead: "t1" },
+        { text: hailMary, bead: "t2" },
+        { text: hailMary, bead: "t1" },
+        { text: hailMary, bead: "t0" },
+        { text: gloryBe, bead: "t2" },
+        ...mysteries[set].flatMap(decade),
+        { text: "Hail, holy Queen, Mother of mercy, our life, our sweetness, and our hope. To thee do we cry, poor banished children of Eve. To thee do we send up our sighs, mourning and weeping in this valley of tears. Turn then, most gracious advocate, thine eyes of mercy toward us, and after this our exile, show unto us the blessed fruit of thy womb, Jesus. O clement, O loving, O sweet Virgin Mary.", bead: "t0" },
+        { text: "Pray for us, O holy Mother of God, that we may be made worthy of the promises of Christ.", bead: "t1" },
+        { text: "O God, whose only begotten Son, by his life, death, and resurrection, has purchased for us the rewards of eternal life, grant, we beseech thee, that meditating upon these mysteries of the most holy Rosary of the Blessed Virgin Mary, we may imitate what they contain and obtain what they promise, through the same Christ our Lord. Amen.", bead: "cross" }
+      ];
+      app.innerHTML = `<div id="bar"><a href="?">Back</a><button id="switch" type="button" aria-label="Switch mystery">${set[0].toUpperCase() + set.slice(1)}</button>${themeDots()}</div><div id="stage"><p id="line"></p>${rosarySVG}</div>`;
+      bindDots();
+      bindPause(document.getElementById("stage"));
+      document.getElementById("switch").addEventListener("click", () => { location.search = "?page=rosary&set=" + next; });
+      const line = document.getElementById("line");
+      function markBead(id) {
+        document.querySelectorAll("[data-bead]").forEach((bead) => {
+          const on = id && bead.dataset.bead === id;
+          bead.setAttribute("opacity", on ? "1" : "0.35");
+          bead.setAttribute("r", String(parseFloat(bead.dataset.r) + (on ? 1.4 : 0)));
+        });
+        const cross = document.getElementById("cross");
+        if (cross) cross.setAttribute("stroke-opacity", id === "cross" ? "1" : "0.35");
+      }
+      const delays = delaysBetween(40, 65);
+      (async function run() {
+        while (true) for (let i = 0; i < lines.length; i++) {
+          markBead(lines[i].bead);
+          await typeLine(line, lines[i].text, delays, i === lines.length - 1 ? 2800 : 1400);
+        }
+      })();
+    }
+  </script>
+</body>
+</html>
